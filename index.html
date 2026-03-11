@@ -468,6 +468,7 @@
 
         const topPoints = [];
         const bottomPoints = [];
+        const dryPoints = [];
 
         for (let i = 0; i <= samples; i++) {
           const t = boundsC.tMin + (i / samples) * (boundsC.tMax - boundsC.tMin);
@@ -475,6 +476,7 @@
           const rhBottom = clamp(rhFromDewPoint(t, dpLow), boundsC.hMin, boundsC.hMax);
           topPoints.push(toCanvas(t, rhTop));
           bottomPoints.push(toCanvas(t, rhBottom));
+          dryPoints.push(toCanvas(t, rhBottom));
         }
 
         ctx.fillStyle = "rgba(86, 201, 131, 0.35)";
@@ -488,6 +490,30 @@
         }
         ctx.closePath();
         ctx.fill();
+
+        ctx.fillStyle = "rgba(193, 154, 16, 0.35)";
+        ctx.beginPath();
+        ctx.moveTo(dryPoints[0].x, dryPoints[0].y);
+        for (let i = 1; i < dryPoints.length; i++) {
+          ctx.lineTo(dryPoints[i].x, dryPoints[i].y);
+        }
+        ctx.lineTo(plot.x + plot.w, plot.y + plot.h);
+        ctx.lineTo(plot.x, plot.y + plot.h);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.font = "bold 12px 'IBM Plex Mono'";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.fillStyle = "#f5d86b";
+        ctx.fillText("Dry", plot.x + plot.w * 0.18, plot.y + plot.h * 0.87);
+
+        ctx.fillStyle = "#6fe3a0";
+        ctx.fillText("Comfort", plot.x + plot.w * 0.42, plot.y + plot.h * 0.12);
+
+        ctx.fillStyle = "#f28b8b";
+        ctx.fillText("Humid", plot.x + plot.w * 0.82, plot.y + plot.h * 0.15);
       }
 
       function drawAxes() {
