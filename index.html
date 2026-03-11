@@ -9,16 +9,16 @@
       @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;600&display=swap");
 
       :root {
-        --bg: #f2efe9;
-        --ink: #1f1a16;
-        --muted: #6c635b;
-        --accent: #c4492d;
-        --accent-2: #2f7f7a;
-        --panel: #fffaf2;
-        --grid: rgba(31, 26, 22, 0.25);
-        --grid-strong: rgba(31, 26, 22, 0.45);
-        --shadow: 0 22px 50px rgba(0, 0, 0, 0.12);
-        --blue: #1b5fbf;
+        --bg: #0f1115;
+        --ink: #f2f1ed;
+        --muted: #b9b1a8;
+        --accent: #ff7a45;
+        --accent-2: #5ad1c6;
+        --panel: #171a21;
+        --grid: rgba(240, 233, 226, 0.14);
+        --grid-strong: rgba(240, 233, 226, 0.28);
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+        --blue: #4aa3ff;
       }
 
       * {
@@ -28,8 +28,8 @@
       body {
         margin: 0;
         font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        background: radial-gradient(900px 600px at 15% 10%, rgba(196, 73, 45, 0.18), transparent 70%),
-          linear-gradient(135deg, #f7f1e8, var(--bg));
+        background: radial-gradient(900px 600px at 15% 10%, rgba(255, 122, 69, 0.18), transparent 70%),
+          linear-gradient(135deg, #0c0e12, var(--bg));
         color: var(--ink);
         min-height: 100vh;
         display: flex;
@@ -43,7 +43,7 @@
         background: var(--panel);
         border-radius: 24px;
         box-shadow: var(--shadow);
-        border: 1px solid #e9dfd2;
+        border: 1px solid #2b2f3a;
         padding: 28px 28px 32px;
         display: grid;
         gap: 22px;
@@ -70,8 +70,8 @@
         width: 100%;
         height: 440px;
         border-radius: 18px;
-        background: #fff;
-        border: 1px solid #eadfce;
+        background: #10141a;
+        border: 1px solid #2c313d;
       }
 
       .controls {
@@ -80,10 +80,10 @@
       }
 
       .card {
-        border: 1px solid #eadfce;
+        border: 1px solid #2b2f3a;
         border-radius: 16px;
         padding: 16px;
-        background: #fffdf8;
+        background: #1b2028;
       }
 
       .card h2 {
@@ -123,8 +123,10 @@
         width: 100%;
         padding: 8px 10px;
         border-radius: 10px;
-        border: 1px solid #e0d5c6;
+        border: 1px solid #2f3542;
         font-family: inherit;
+        background: #10141a;
+        color: var(--ink);
       }
 
       .badge {
@@ -133,9 +135,9 @@
         gap: 6px;
         padding: 6px 12px;
         border-radius: 999px;
-        background: rgba(47, 127, 122, 0.12);
+        background: rgba(90, 209, 198, 0.16);
         color: var(--accent-2);
-        border: 1px solid rgba(47, 127, 122, 0.2);
+        border: 1px solid rgba(90, 209, 198, 0.28);
         font-size: 12px;
       }
 
@@ -146,11 +148,11 @@
 
       .unit-toggle {
         display: inline-flex;
-        background: #f1e7d8;
+        background: #222834;
         border-radius: 999px;
         padding: 4px;
         gap: 4px;
-        border: 1px solid #e0d5c6;
+        border: 1px solid #2f3542;
       }
 
       .unit-toggle button {
@@ -265,8 +267,14 @@
         hMax: 100,
       };
 
+      const rootStyles = getComputedStyle(document.documentElement);
       const colors = {
-        blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim() || "#1b5fbf",
+        blue: rootStyles.getPropertyValue("--blue").trim() || "#1b5fbf",
+        grid: rootStyles.getPropertyValue("--grid").trim() || "rgba(240, 233, 226, 0.14)",
+        gridStrong: rootStyles.getPropertyValue("--grid-strong").trim() || "rgba(240, 233, 226, 0.28)",
+        ink: rootStyles.getPropertyValue("--ink").trim() || "#f2f1ed",
+        muted: rootStyles.getPropertyValue("--muted").trim() || "#b9b1a8",
+        panel: rootStyles.getPropertyValue("--panel").trim() || "#1b2028",
       };
 
       const padding = {
@@ -392,7 +400,7 @@
       function drawGrid() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const plot = getPlotRect();
-        ctx.strokeStyle = "var(--grid)";
+        ctx.strokeStyle = colors.grid;
         ctx.lineWidth = 1;
 
         for (let t = boundsC.tMin; t <= boundsC.tMax; t += 5) {
@@ -411,14 +419,14 @@
           ctx.stroke();
         }
 
-        ctx.strokeStyle = "var(--grid-strong)";
+        ctx.strokeStyle = colors.gridStrong;
         ctx.lineWidth = 2;
         ctx.strokeRect(plot.x, plot.y, plot.w, plot.h);
       }
 
       function drawAxes() {
         const plot = getPlotRect();
-        ctx.fillStyle = "#6c635b";
+        ctx.fillStyle = colors.muted;
         ctx.font = "12px 'IBM Plex Mono'";
         ctx.textAlign = "left";
         ctx.fillText(`Temperature (${ui.unit})`, plot.x, canvas.height - 14);
@@ -429,7 +437,7 @@
         ctx.restore();
 
         ctx.textAlign = "center";
-        ctx.fillStyle = "#6c635b";
+        ctx.fillStyle = colors.muted;
         for (let t = boundsC.tMin; t <= boundsC.tMax; t += 5) {
           const x = plot.x + ((t - boundsC.tMin) / (boundsC.tMax - boundsC.tMin)) * plot.w;
           const label = ui.unit === "C" ? t : cToF(t);
@@ -460,7 +468,7 @@
         if (boxY < plot.y) boxY = point.y + 12;
         if (boxY + boxH > plot.y + plot.h) boxY = plot.y + plot.h - boxH;
 
-        ctx.fillStyle = "#fffaf2";
+        ctx.fillStyle = colors.panel;
         ctx.strokeStyle = color;
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -492,20 +500,20 @@
         const humLabel = hum.toFixed(1);
 
         ctx.font = "12px 'IBM Plex Mono'";
-        ctx.fillStyle = "#1f1a16";
+        ctx.fillStyle = colors.ink;
         ctx.textAlign = "center";
         const tempLabelY = canvas.height - 28;
         const tempBoxWidth = 50;
         const tempBoxHeight = 18;
         const tempBoxX = Math.min(Math.max(point.x - tempBoxWidth / 2, plot.x), plot.x + plot.w - tempBoxWidth);
-        ctx.fillStyle = "#fffaf2";
-        ctx.strokeStyle = "#1f1a16";
+        ctx.fillStyle = colors.panel;
+        ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(tempBoxX, tempLabelY - tempBoxHeight + 4, tempBoxWidth, tempBoxHeight, 6);
         ctx.fill();
         ctx.stroke();
-        ctx.fillStyle = "#1f1a16";
+        ctx.fillStyle = colors.ink;
         ctx.fillText(tempLabel, tempBoxX + tempBoxWidth / 2, tempLabelY);
 
         ctx.textAlign = "right";
@@ -513,21 +521,21 @@
         const humBoxHeight = 18;
         const humBoxX = plot.x - humBoxWidth - 10;
         const humBoxY = Math.min(Math.max(point.y - humBoxHeight / 2, plot.y), plot.y + plot.h - humBoxHeight);
-        ctx.fillStyle = "#fffaf2";
-        ctx.strokeStyle = "#1f1a16";
+        ctx.fillStyle = colors.panel;
+        ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(humBoxX, humBoxY, humBoxWidth, humBoxHeight, 6);
         ctx.fill();
         ctx.stroke();
-        ctx.fillStyle = "#1f1a16";
+        ctx.fillStyle = colors.ink;
         ctx.fillText(humLabel, humBoxX + humBoxWidth - 6, humBoxY + humBoxHeight - 5);
       }
 
       function drawSelection() {
         const point = toCanvas(state.tempC, state.hum);
-        ctx.fillStyle = "#c4492d";
-        ctx.strokeStyle = "#1f1a16";
+        ctx.fillStyle = "#ff7a45";
+        ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(point.x, point.y, 10, 0, Math.PI * 2);
@@ -557,11 +565,11 @@
         drawAxes();
         const hover = ui.hover && !ui.dragging ? ui.hover : null;
         if (hover) {
-          drawCrosshair(hover.tempC, hover.hum, "rgba(31, 26, 22, 0.35)");
-          drawPointLabel(hover.tempC, hover.hum, "#6c635b");
+          drawCrosshair(hover.tempC, hover.hum, "rgba(242, 241, 237, 0.35)");
+          drawPointLabel(hover.tempC, hover.hum, colors.muted);
         }
-        drawCrosshair(state.tempC, state.hum, "rgba(31, 26, 22, 0.6)");
-        drawPointLabel(state.tempC, state.hum, "#1f1a16");
+        drawCrosshair(state.tempC, state.hum, "rgba(242, 241, 237, 0.6)");
+        drawPointLabel(state.tempC, state.hum, colors.ink);
         drawSelection();
       }
 
