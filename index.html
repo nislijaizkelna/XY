@@ -265,6 +265,10 @@
         hMax: 100,
       };
 
+      const colors = {
+        blue: getComputedStyle(document.documentElement).getPropertyValue("--blue").trim() || "#1b5fbf",
+      };
+
       const padding = {
         left: 62,
         right: 20,
@@ -534,8 +538,8 @@
         const dewPointClamped = clamp(dewPoint, boundsC.tMin, boundsC.tMax);
         const dewPointCanvas = toCanvas(dewPointClamped, boundsC.hMin);
 
-        ctx.fillStyle = "var(--blue)";
-        ctx.strokeStyle = "#0f3a7a";
+        ctx.fillStyle = colors.blue;
+        ctx.strokeStyle = colors.blue;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(dewPointCanvas.x, getPlotRect().y + getPlotRect().h, 7, 0, Math.PI * 2);
@@ -543,7 +547,7 @@
         ctx.stroke();
 
         ctx.font = "bold 12px 'IBM Plex Mono'";
-        ctx.fillStyle = "var(--blue)";
+        ctx.fillStyle = colors.blue;
         ctx.textAlign = "center";
         ctx.fillText(`${formatTemp(dewPoint)}${ui.unit}`, dewPointCanvas.x, canvas.height - 8);
       }
