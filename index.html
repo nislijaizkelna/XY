@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dew Point XY Selector</title>
+    <meta name="theme-color" content="#c4492d" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;600&display=swap");
+
+      :root {
+        --bg: #f2efe9;
+        --ink: #1f1a16;
+        --muted: #6c635b;
+        --accent: #c4492d;
+        --accent-2: #2f7f7a;
+        --panel: #fffaf2;
+        --grid: rgba(31, 26, 22, 0.25);
+        --grid-strong: rgba(31, 26, 22, 0.45);
+        --shadow: 0 22px 50px rgba(0, 0, 0, 0.12);
+        --blue: #1b5fbf;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        background: radial-gradient(900px 600px at 15% 10%, rgba(196, 73, 45, 0.18), transparent 70%),
+          linear-gradient(135deg, #f7f1e8, var(--bg));
+        color: var(--ink);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 36px 18px;
+      }
+
+      .app {
+        width: min(1120px, 100%);
+        background: var(--panel);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid #e9dfd2;
+        padding: 28px 28px 32px;
+        display: grid;
+        gap: 22px;
+        grid-template-columns: minmax(320px, 1.1fr) minmax(260px, 0.8fr);
+      }
+
+      header h1 {
+        font-family: "Fraunces", serif;
+        font-size: clamp(28px, 3.6vw, 42px);
+        margin: 0 0 6px;
+      }
+
+      header p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .graph-wrap {
+        display: grid;
+        gap: 12px;
+      }
+
+      canvas {
+        width: 100%;
+        height: 440px;
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid #eadfce;
+      }
+
+      .controls {
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid #eadfce;
+        border-radius: 16px;
+        padding: 16px;
+        background: #fffdf8;
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+
+      .value {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 28px;
+      }
+
+      .value span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .row {
+        display: grid;
+        gap: 10px;
+      }
+
+      label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      input[type="number"] {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #e0d5c6;
+        font-family: inherit;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(47, 127, 122, 0.12);
+        color: var(--accent-2);
+        border: 1px solid rgba(47, 127, 122, 0.2);
+        font-size: 12px;
+      }
+
+      .footer {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .unit-toggle {
+        display: inline-flex;
+        background: #f1e7d8;
+        border-radius: 999px;
+        padding: 4px;
+        gap: 4px;
+        border: 1px solid #e0d5c6;
+      }
+
+      .unit-toggle button {
+        border: none;
+        background: transparent;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-family: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--muted);
+      }
+
+      .unit-toggle button.active {
+        background: var(--accent);
+        color: white;
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="graph-wrap">
+        <header>
+          <h1>Dew Point Map</h1>
+          <p>Select air temperature (x) and relative humidity (y) on the graph.</p>
+        </header>
+        <canvas id="chart" width="780" height="440" aria-label="Temperature vs humidity" role="img"></canvas>
+        <div class="footer">
+          Drag to select. Hover to preview. X = air temperature, Y = relative humidity (%).
+        </div>
+      </section>
+
+      <section class="controls">
+        <div class="card">
+          <h2>Selection</h2>
+          <div class="row">
+            <div class="value">
+              <strong id="tempOut">22.0</strong>
+              <span id="tempUnit">C</span>
+            </div>
+            <label for="tempRange">Air temperature</label>
+            <input id="tempRange" type="range" min="-20" max="50" value="22" step="0.5" />
+            <input id="tempInput" type="number" min="-20" max="50" value="22" step="0.1" />
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <div class="value">
+              <strong id="humOut">55.0</strong>
+              <span>%</span>
+            </div>
+            <label for="humRange">Relative humidity</label>
+            <input id="humRange" type="range" min="10" max="100" value="55" step="1" />
+            <input id="humInput" type="number" min="10" max="100" value="55" step="1" />
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Dew Point</h2>
+          <div class="value" style="color: var(--blue);">
+            <strong id="dewOut">12.0</strong>
+            <span id="dewUnit">C</span>
+          </div>
+          <div class="badge" id="comfort">Comfort: OK</div>
+        </div>
+
+        <div class="card">
+          <h2>Units</h2>
+          <div class="unit-toggle" role="group" aria-label="Temperature units">
+            <button id="unitC" class="active" type="button">C</button>
+            <button id="unitF" type="button">F</button>
+          </div>
+          <p class="footer" id="unitHint" style="margin-top: 8px;">Inputs are in C.</p>
+        </div>
+
+        <div class="card">
+          <h2>Notes</h2>
+          <p class="footer">
+            Dew point uses the Magnus formula. Blue dot marks dew point along the x-axis.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("chart");
+      const ctx = canvas.getContext("2d");
+
+      const tempRange = document.getElementById("tempRange");
+      const tempInput = document.getElementById("tempInput");
+      const humRange = document.getElementById("humRange");
+      const humInput = document.getElementById("humInput");
+
+      const tempOut = document.getElementById("tempOut");
+      const humOut = document.getElementById("humOut");
+      const dewOut = document.getElementById("dewOut");
+      const comfort = document.getElementById("comfort");
+      const tempUnit = document.getElementById("tempUnit");
+      const dewUnit = document.getElementById("dewUnit");
+      const unitC = document.getElementById("unitC");
+      const unitF = document.getElementById("unitF");
+      const unitHint = document.getElementById("unitHint");
+
+      const boundsC = {
+        tMin: -20,
+        tMax: 50,
+        hMin: 10,
+        hMax: 100,
+      };
+
+      const padding = {
+        left: 62,
+        right: 20,
+        top: 18,
+        bottom: 48,
+      };
+
+      let state = {
+        tempC: 22,
+        hum: 55,
+      };
+
+      let ui = {
+        unit: "C",
+        hover: null,
+        dragging: false,
+      };
+
+      function dewPointC(tempC, rh) {
+        const a = 17.625;
+        const b = 243.04;
+        const alpha = Math.log(rh / 100) + (a * tempC) / (b + tempC);
+        return (b * alpha) / (a - alpha);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function cToF(c) {
+        return c * 9 / 5 + 32;
+      }
+
+      function fToC(f) {
+        return (f - 32) * 5 / 9;
+      }
+
+      function formatTemp(tempC) {
+        return ui.unit === "C" ? tempC.toFixed(1) : cToF(tempC).toFixed(1);
+      }
+
+      function setComfort(dpC) {
+        let label = "Comfort: OK";
+        if (dpC >= 24) label = "Comfort: Oppressive";
+        else if (dpC >= 20) label = "Comfort: Muggy";
+        else if (dpC >= 16) label = "Comfort: Humid";
+        else if (dpC <= 2) label = "Comfort: Dry";
+        comfort.textContent = label;
+      }
+
+      function updateOutputs() {
+        tempOut.textContent = formatTemp(state.tempC);
+        humOut.textContent = state.hum.toFixed(1);
+        const dp = dewPointC(state.tempC, state.hum);
+        dewOut.textContent = formatTemp(dp);
+        setComfort(dp);
+      }
+
+      function updateUnitUI() {
+        const isC = ui.unit === "C";
+        unitC.classList.toggle("active", isC);
+        unitF.classList.toggle("active", !isC);
+        tempUnit.textContent = ui.unit;
+        dewUnit.textContent = ui.unit;
+        unitHint.textContent = `Inputs are in ${ui.unit}.`;
+
+        const tempMin = isC ? boundsC.tMin : cToF(boundsC.tMin);
+        const tempMax = isC ? boundsC.tMax : cToF(boundsC.tMax);
+
+        tempRange.min = tempMin.toFixed(1);
+        tempRange.max = tempMax.toFixed(1);
+        tempInput.min = tempRange.min;
+        tempInput.max = tempRange.max;
+
+        syncInputs();
+      }
+
+      function syncInputs() {
+        const tempDisplay = ui.unit === "C" ? state.tempC : cToF(state.tempC);
+        tempRange.value = tempDisplay;
+        tempInput.value = tempDisplay.toFixed(1);
+        humRange.value = state.hum;
+        humInput.value = state.hum.toFixed(1);
+        updateOutputs();
+        draw();
+      }
+
+      function getPlotRect() {
+        return {
+          x: padding.left,
+          y: padding.top,
+          w: canvas.width - padding.left - padding.right,
+          h: canvas.height - padding.top - padding.bottom,
+        };
+      }
+
+      function fromCanvas(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const cx = (clientX - rect.left) * scaleX;
+        const cy = (clientY - rect.top) * scaleY;
+        const plot = getPlotRect();
+        const nx = clamp((cx - plot.x) / plot.w, 0, 1);
+        const ny = clamp((cy - plot.y) / plot.h, 0, 1);
+        const tempC = boundsC.tMin + nx * (boundsC.tMax - boundsC.tMin);
+        const hum = boundsC.hMax - ny * (boundsC.hMax - boundsC.hMin);
+        return { tempC, hum };
+      }
+
+      function toCanvas(tempC, hum) {
+        const plot = getPlotRect();
+        const nx = (tempC - boundsC.tMin) / (boundsC.tMax - boundsC.tMin);
+        const ny = (boundsC.hMax - hum) / (boundsC.hMax - boundsC.hMin);
+        return {
+          x: plot.x + nx * plot.w,
+          y: plot.y + ny * plot.h,
+        };
+      }
+
+      function drawGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const plot = getPlotRect();
+        ctx.strokeStyle = "var(--grid)";
+        ctx.lineWidth = 1;
+
+        for (let t = boundsC.tMin; t <= boundsC.tMax; t += 5) {
+          const x = plot.x + ((t - boundsC.tMin) / (boundsC.tMax - boundsC.tMin)) * plot.w;
+          ctx.beginPath();
+          ctx.moveTo(x, plot.y);
+          ctx.lineTo(x, plot.y + plot.h);
+          ctx.stroke();
+        }
+
+        for (let h = boundsC.hMin; h <= boundsC.hMax; h += 5) {
+          const y = plot.y + ((boundsC.hMax - h) / (boundsC.hMax - boundsC.hMin)) * plot.h;
+          ctx.beginPath();
+          ctx.moveTo(plot.x, y);
+          ctx.lineTo(plot.x + plot.w, y);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "var(--grid-strong)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(plot.x, plot.y, plot.w, plot.h);
+      }
+
+      function drawAxes() {
+        const plot = getPlotRect();
+        ctx.fillStyle = "#6c635b";
+        ctx.font = "12px 'IBM Plex Mono'";
+        ctx.textAlign = "left";
+        ctx.fillText(`Temperature (${ui.unit})`, plot.x, canvas.height - 14);
+        ctx.save();
+        ctx.translate(16, plot.y + 10);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText("Humidity (%)", 0, 0);
+        ctx.restore();
+
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#6c635b";
+        for (let t = boundsC.tMin; t <= boundsC.tMax; t += 5) {
+          const x = plot.x + ((t - boundsC.tMin) / (boundsC.tMax - boundsC.tMin)) * plot.w;
+          const label = ui.unit === "C" ? t : cToF(t);
+          ctx.fillText(label.toFixed(0), x, canvas.height - 28);
+        }
+
+        ctx.textAlign = "right";
+        for (let h = boundsC.hMin; h <= boundsC.hMax; h += 5) {
+          const y = plot.y + ((boundsC.hMax - h) / (boundsC.hMax - boundsC.hMin)) * plot.h + 4;
+          ctx.fillText(String(h), plot.x - 8, y);
+        }
+      }
+
+      function drawPointLabel(tempC, hum, color) {
+        const plot = getPlotRect();
+        const point = toCanvas(tempC, hum);
+        const label = `${formatTemp(tempC)}${ui.unit}  |  ${hum.toFixed(1)}%`;
+        ctx.font = "12px 'IBM Plex Mono'";
+        const metrics = ctx.measureText(label);
+        const paddingX = 8;
+        const paddingY = 6;
+        const boxW = metrics.width + paddingX * 2;
+        const boxH = 20;
+        let boxX = point.x + 12;
+        let boxY = point.y - boxH - 12;
+        if (boxX + boxW > plot.x + plot.w) boxX = point.x - boxW - 12;
+        if (boxX < plot.x) boxX = plot.x;
+        if (boxY < plot.y) boxY = point.y + 12;
+        if (boxY + boxH > plot.y + plot.h) boxY = plot.y + plot.h - boxH;
+
+        ctx.fillStyle = "#fffaf2";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.textAlign = "left";
+        ctx.fillText(label, boxX + paddingX, boxY + boxH - paddingY);
+      }
+
+      function drawCrosshair(tempC, hum, style) {
+        const plot = getPlotRect();
+        const point = toCanvas(tempC, hum);
+        ctx.strokeStyle = style;
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(point.x, plot.y + plot.h);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(plot.x, point.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const tempLabel = formatTemp(tempC);
+        const humLabel = hum.toFixed(1);
+
+        ctx.font = "12px 'IBM Plex Mono'";
+        ctx.fillStyle = "#1f1a16";
+        ctx.textAlign = "center";
+        const tempLabelY = canvas.height - 28;
+        const tempBoxWidth = 50;
+        const tempBoxHeight = 18;
+        const tempBoxX = Math.min(Math.max(point.x - tempBoxWidth / 2, plot.x), plot.x + plot.w - tempBoxWidth);
+        ctx.fillStyle = "#fffaf2";
+        ctx.strokeStyle = "#1f1a16";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(tempBoxX, tempLabelY - tempBoxHeight + 4, tempBoxWidth, tempBoxHeight, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#1f1a16";
+        ctx.fillText(tempLabel, tempBoxX + tempBoxWidth / 2, tempLabelY);
+
+        ctx.textAlign = "right";
+        const humBoxWidth = 50;
+        const humBoxHeight = 18;
+        const humBoxX = plot.x - humBoxWidth - 10;
+        const humBoxY = Math.min(Math.max(point.y - humBoxHeight / 2, plot.y), plot.y + plot.h - humBoxHeight);
+        ctx.fillStyle = "#fffaf2";
+        ctx.strokeStyle = "#1f1a16";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(humBoxX, humBoxY, humBoxWidth, humBoxHeight, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#1f1a16";
+        ctx.fillText(humLabel, humBoxX + humBoxWidth - 6, humBoxY + humBoxHeight - 5);
+      }
+
+      function drawSelection() {
+        const point = toCanvas(state.tempC, state.hum);
+        ctx.fillStyle = "#c4492d";
+        ctx.strokeStyle = "#1f1a16";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        const dewPoint = dewPointC(state.tempC, state.hum);
+        const dewPointClamped = clamp(dewPoint, boundsC.tMin, boundsC.tMax);
+        const dewPointCanvas = toCanvas(dewPointClamped, boundsC.hMin);
+
+        ctx.fillStyle = "var(--blue)";
+        ctx.strokeStyle = "#0f3a7a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(dewPointCanvas.x, getPlotRect().y + getPlotRect().h, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = "bold 12px 'IBM Plex Mono'";
+        ctx.fillStyle = "var(--blue)";
+        ctx.textAlign = "center";
+        ctx.fillText(`${formatTemp(dewPoint)}${ui.unit}`, dewPointCanvas.x, canvas.height - 8);
+      }
+
+      function draw() {
+        drawGrid();
+        drawAxes();
+        const hover = ui.hover && !ui.dragging ? ui.hover : null;
+        if (hover) {
+          drawCrosshair(hover.tempC, hover.hum, "rgba(31, 26, 22, 0.35)");
+          drawPointLabel(hover.tempC, hover.hum, "#6c635b");
+        }
+        drawCrosshair(state.tempC, state.hum, "rgba(31, 26, 22, 0.6)");
+        drawPointLabel(state.tempC, state.hum, "#1f1a16");
+        drawSelection();
+      }
+
+      function updateFromInputs() {
+        const tempValue = parseFloat(tempRange.value || 0);
+        state.tempC = clamp(ui.unit === "C" ? tempValue : fToC(tempValue), boundsC.tMin, boundsC.tMax);
+        state.hum = clamp(parseFloat(humRange.value || 0), boundsC.hMin, boundsC.hMax);
+        syncInputs();
+      }
+
+      function updateFromTextInputs() {
+        const tempValue = parseFloat(tempInput.value || 0);
+        state.tempC = clamp(ui.unit === "C" ? tempValue : fToC(tempValue), boundsC.tMin, boundsC.tMax);
+        state.hum = clamp(parseFloat(humInput.value || 0), boundsC.hMin, boundsC.hMax);
+        syncInputs();
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        ui.dragging = true;
+        const point = fromCanvas(event.clientX, event.clientY);
+        state.tempC = point.tempC;
+        state.hum = point.hum;
+        syncInputs();
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        const point = fromCanvas(event.clientX, event.clientY);
+        ui.hover = point;
+        if (ui.dragging) {
+          state.tempC = point.tempC;
+          state.hum = point.hum;
+          syncInputs();
+        } else {
+          draw();
+        }
+      });
+
+      canvas.addEventListener("pointerleave", () => {
+        ui.hover = null;
+        draw();
+      });
+
+      window.addEventListener("pointerup", () => {
+        ui.dragging = false;
+      });
+
+      tempRange.addEventListener("input", updateFromInputs);
+      humRange.addEventListener("input", updateFromInputs);
+      tempInput.addEventListener("change", updateFromTextInputs);
+      humInput.addEventListener("change", updateFromTextInputs);
+
+      unitC.addEventListener("click", () => {
+        ui.unit = "C";
+        updateUnitUI();
+      });
+
+      unitF.addEventListener("click", () => {
+        ui.unit = "F";
+        updateUnitUI();
+      });
+
+      window.addEventListener("resize", draw);
+
+      updateUnitUI();
+    </script>
+  </body>
+</html>
