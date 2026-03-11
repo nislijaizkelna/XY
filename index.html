@@ -72,6 +72,7 @@
         border-radius: 18px;
         background: #10141a;
         border: 1px solid #2c313d;
+        touch-action: none;
       }
 
       .controls {
@@ -727,7 +728,9 @@
       }
 
       canvas.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
         ui.dragging = true;
+        canvas.setPointerCapture(event.pointerId);
         const point = fromCanvas(event.clientX, event.clientY);
         state.tempC = point.tempC;
         state.hum = point.hum;
@@ -735,6 +738,7 @@
       });
 
       canvas.addEventListener("pointermove", (event) => {
+        if (ui.dragging) event.preventDefault();
         const point = fromCanvas(event.clientX, event.clientY);
         ui.hover = point;
         if (ui.dragging) {
