@@ -329,6 +329,14 @@
         return (b * alpha) / (a - alpha);
       }
 
+      function rhFromDewPoint(tempC, dewPointCValue) {
+        const a = 17.625;
+        const b = 243.04;
+        const gammaDp = (a * dewPointCValue) / (b + dewPointCValue);
+        const gammaT = (a * tempC) / (b + tempC);
+        return 100 * Math.exp(gammaDp - gammaT);
+      }
+
       function clamp(value, min, max) {
         return Math.min(max, Math.max(min, value));
       }
@@ -425,6 +433,7 @@
       function drawGrid() {
         ctx.clearRect(0, 0, canvasSize.w, canvasSize.h);
         const plot = getPlotRect();
+        drawComfortZones(plot);
         ctx.strokeStyle = colors.grid;
         ctx.lineWidth = 1;
 
@@ -449,30 +458,99 @@
         ctx.strokeRect(plot.x, plot.y, plot.w, plot.h);
       }
 
+      function drawComfortZones(plot) {
+        const samples = 140;
+        const dpLow = 2;
+        const dpHigh = 16;
+
+        ctx.fillStyle = "rgba(217, 67, 67, 0.25)";
+        ctx.fillRect(plot.x, plot.y, plot.w, plot.h);
+
+        const topPoints = [];
+        const bottomPoints = [];
+
+        for (let i = 0; i <= samples; i++) {
+          const t = boundsC.tMin + (i / samples) * (boundsC.tMax - boundsC.tMin);
+          const rhTop = clamp(rhFromDewPoint(t, dpHigh), boundsC.hMin, boundsC.hMax);
+          const rhBottom = clamp(rhFromDewPoint(t, dpLow), boundsC.hMin, boundsC.hMax);
+          topPoints.push(toCanvas(t, rhTop));
+          bottomPoints.push(toCanvas(t, rhBottom));
+        }
+
+        ctx.fillStyle = "rgba(86, 201, 131, 0.35)";
+        ctx.beginPath();
+        ctx.moveTo(topPoints[0].x, topPoints[0].y);
+        for (let i = 1; i < topPoints.length; i++) {
+          ctx.lineTo(topPoints[i].x, topPoints[i].y);
+        }
+        for (let i = bottomPoints.length - 1; i >= 0; i--) {
+          ctx.lineTo(bottomPoints[i].x, bottomPoints[i].y);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+
       function drawAxes() {
         const plot = getPlotRect();
         ctx.fillStyle = colors.muted;
-        ctx.font = "12px 'IBM Plex Mono'";
+        ctx.strokeStyle = colors.muted;
+        ctx.lineWidth = 1.5;
+
+        const originX = plot.x;
+        const originY = plot.y + plot.h;
+
+        ctx.font = "13px 'IBM Plex Mono'";
         ctx.textAlign = "left";
-        ctx.fillText(`Temperature (${ui.unit})`, plot.x, canvasSize.h - 14);
+        const tempLabel = `Temperature (${ui.unit})`;
+        ctx.fillText(tempLabel, originX + 6, originY + 32);
+        const tempWidth = ctx.measureText(tempLabel).width;
+        const arrowX = originX + 12 + tempWidth;
+        const arrowY = originY + 28;
+        ctx.beginPath();
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(arrowX + 18, arrowY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(arrowX + 18, arrowY);
+        ctx.lineTo(arrowX + 12, arrowY - 4);
+        ctx.lineTo(arrowX + 12, arrowY + 4);
+        ctx.closePath();
+        ctx.fill();
+
+        const humLabel = "Humidity (%)";
         ctx.save();
-        ctx.translate(16, plot.y + 10);
+        ctx.translate(originX - 48, originY - 6);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText("Humidity (%)", 0, 0);
+        ctx.fillText(humLabel, 0, 0);
+        const humWidth = ctx.measureText(humLabel).width;
+        const humArrowX = humWidth + 6;
+        const humArrowY = 0;
+        ctx.beginPath();
+        ctx.moveTo(humArrowX, humArrowY);
+        ctx.lineTo(humArrowX + 18, humArrowY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(humArrowX + 18, humArrowY);
+        ctx.lineTo(humArrowX + 12, humArrowY - 4);
+        ctx.lineTo(humArrowX + 12, humArrowY + 4);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
 
         ctx.textAlign = "center";
-        ctx.fillStyle = colors.muted;
+        ctx.fillStyle = colors.ink;
+        ctx.font = "12px 'IBM Plex Mono'";
         for (let t = boundsC.tMin; t <= boundsC.tMax; t += 5) {
           const x = plot.x + ((t - boundsC.tMin) / (boundsC.tMax - boundsC.tMin)) * plot.w;
           const label = ui.unit === "C" ? t : cToF(t);
-          ctx.fillText(label.toFixed(0), x, canvasSize.h - 28);
+          ctx.fillText(label.toFixed(0), x, canvasSize.h - 30);
         }
 
         ctx.textAlign = "right";
+        ctx.fillStyle = colors.ink;
         for (let h = boundsC.hMin; h <= boundsC.hMax; h += 5) {
           const y = plot.y + ((boundsC.hMax - h) / (boundsC.hMax - boundsC.hMin)) * plot.h + 4;
-          ctx.fillText(String(h), plot.x - 8, y);
+          ctx.fillText(String(h), plot.x - 12, y);
         }
       }
 
