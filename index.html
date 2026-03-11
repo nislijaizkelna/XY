@@ -176,6 +176,28 @@
           grid-template-columns: 1fr;
         }
       }
+
+      @media (max-width: 700px) {
+        body {
+          padding: 20px 12px;
+        }
+
+        .app {
+          padding: 20px;
+        }
+
+        canvas {
+          height: 320px;
+        }
+
+        .value {
+          font-size: 24px;
+        }
+
+        input[type="number"] {
+          font-size: 16px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -284,6 +306,11 @@
         bottom: 48,
       };
 
+      let canvasSize = {
+        w: canvas.clientWidth,
+        h: canvas.clientHeight,
+      };
+
       let state = {
         tempC: 22,
         hum: 55,
@@ -368,17 +395,15 @@
         return {
           x: padding.left,
           y: padding.top,
-          w: canvas.width - padding.left - padding.right,
-          h: canvas.height - padding.top - padding.bottom,
+          w: canvasSize.w - padding.left - padding.right,
+          h: canvasSize.h - padding.top - padding.bottom,
         };
       }
 
       function fromCanvas(clientX, clientY) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const cx = (clientX - rect.left) * scaleX;
-        const cy = (clientY - rect.top) * scaleY;
+        const cx = clientX - rect.left;
+        const cy = clientY - rect.top;
         const plot = getPlotRect();
         const nx = clamp((cx - plot.x) / plot.w, 0, 1);
         const ny = clamp((cy - plot.y) / plot.h, 0, 1);
@@ -398,7 +423,7 @@
       }
 
       function drawGrid() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvasSize.w, canvasSize.h);
         const plot = getPlotRect();
         ctx.strokeStyle = colors.grid;
         ctx.lineWidth = 1;
@@ -429,7 +454,7 @@
         ctx.fillStyle = colors.muted;
         ctx.font = "12px 'IBM Plex Mono'";
         ctx.textAlign = "left";
-        ctx.fillText(`Temperature (${ui.unit})`, plot.x, canvas.height - 14);
+        ctx.fillText(`Temperature (${ui.unit})`, plot.x, canvasSize.h - 14);
         ctx.save();
         ctx.translate(16, plot.y + 10);
         ctx.rotate(-Math.PI / 2);
@@ -441,7 +466,7 @@
         for (let t = boundsC.tMin; t <= boundsC.tMax; t += 5) {
           const x = plot.x + ((t - boundsC.tMin) / (boundsC.tMax - boundsC.tMin)) * plot.w;
           const label = ui.unit === "C" ? t : cToF(t);
-          ctx.fillText(label.toFixed(0), x, canvas.height - 28);
+          ctx.fillText(label.toFixed(0), x, canvasSize.h - 28);
         }
 
         ctx.textAlign = "right";
@@ -502,7 +527,7 @@
         ctx.font = "12px 'IBM Plex Mono'";
         ctx.fillStyle = colors.ink;
         ctx.textAlign = "center";
-        const tempLabelY = canvas.height - 28;
+        const tempLabelY = canvasSize.h - 28;
         const tempBoxWidth = 50;
         const tempBoxHeight = 18;
         const tempBoxX = Math.min(Math.max(point.x - tempBoxWidth / 2, plot.x), plot.x + plot.w - tempBoxWidth);
@@ -557,7 +582,17 @@
         ctx.font = "bold 12px 'IBM Plex Mono'";
         ctx.fillStyle = colors.blue;
         ctx.textAlign = "center";
-        ctx.fillText(`${formatTemp(dewPoint)}${ui.unit}`, dewPointCanvas.x, canvas.height - 8);
+        ctx.fillText(`${formatTemp(dewPoint)}${ui.unit}`, dewPointCanvas.x, canvasSize.h - 8);
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        canvasSize = { w: rect.width, h: rect.height };
+        draw();
       }
 
       function draw() {
@@ -631,8 +666,9 @@
         updateUnitUI();
       });
 
-      window.addEventListener("resize", draw);
+      window.addEventListener("resize", resizeCanvas);
 
+      resizeCanvas();
       updateUnitUI();
     </script>
   </body>
