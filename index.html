@@ -173,6 +173,108 @@
         color: white;
       }
 
+      .button {
+        border: none;
+        background: var(--accent);
+        color: white;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        box-shadow: 0 10px 20px rgba(255, 122, 69, 0.2);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 12, 0.68);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        z-index: 30;
+      }
+
+      .modal.open {
+        display: flex;
+      }
+
+      .modal-panel {
+        width: min(760px, 100%);
+        background: #11151c;
+        border: 1px solid #2b2f3a;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+        max-height: min(80vh, 720px);
+        overflow: hidden;
+        display: grid;
+        gap: 12px;
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .modal-header h3 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+      }
+
+      .close-button {
+        border: 1px solid #2f3542;
+        background: transparent;
+        color: var(--ink);
+        padding: 6px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border-radius: 12px;
+        border: 1px solid #242a35;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid #242a35;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: #141922;
+        color: var(--muted);
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.6px;
+      }
+
+      tr:nth-child(even) td {
+        background: rgba(20, 26, 34, 0.4);
+      }
+
       @media (max-width: 900px) {
         .app {
           grid-template-columns: 1fr;
@@ -248,6 +350,15 @@
         </div>
 
         <div class="card">
+          <h2>Статистика</h2>
+          <p class="footer">Историја свих израчунатих тачака росе.</p>
+          <div class="row" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="button" id="openStats" type="button">Прикажи табелу</button>
+            <button class="button" id="clearStats" type="button" style="background: #2c313d; box-shadow: none;">Обриши</button>
+          </div>
+        </div>
+
+        <div class="card">
           <h2>Јединице</h2>
           <div class="unit-toggle" role="group" aria-label="Јединице температуре">
             <button id="unitC" class="active" type="button">C</button>
@@ -264,6 +375,28 @@
         </div>
       </section>
     </main>
+
+    <div class="modal" id="statsModal" aria-hidden="true" role="dialog" aria-label="Статистика тачке росе">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h3>Статистика</h3>
+          <button class="close-button" id="closeStats" type="button">Затвори</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Температура</th>
+                <th>Влажност</th>
+                <th>Тачка росе</th>
+                <th>Датум и време</th>
+              </tr>
+            </thead>
+            <tbody id="statsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
     <script>
       const canvas = document.getElementById("chart");
@@ -283,6 +416,11 @@
       const unitC = document.getElementById("unitC");
       const unitF = document.getElementById("unitF");
       const unitHint = document.getElementById("unitHint");
+      const openStats = document.getElementById("openStats");
+      const clearStats = document.getElementById("clearStats");
+      const closeStats = document.getElementById("closeStats");
+      const statsModal = document.getElementById("statsModal");
+      const statsBody = document.getElementById("statsBody");
 
       const boundsC = {
         tMin: -20,
@@ -324,6 +462,10 @@
         dragging: false,
       };
 
+      const historyKey = "dewpoint_history_v1";
+      const historyLimit = 300;
+      let history = [];
+
       function dewPointC(tempC, rh) {
         const a = 17.625;
         const b = 243.04;
@@ -364,6 +506,83 @@
         comfort.textContent = label;
       }
 
+      function loadHistory() {
+        try {
+          const raw = localStorage.getItem(historyKey);
+          history = raw ? JSON.parse(raw) : [];
+        } catch (error) {
+          history = [];
+        }
+      }
+
+      function saveHistory() {
+        localStorage.setItem(historyKey, JSON.stringify(history));
+      }
+
+      function logHistory(tempC, hum) {
+        const dewC = dewPointC(tempC, hum);
+        history.push({
+          tempC,
+          hum,
+          dewC,
+          timestamp: Date.now(),
+        });
+        if (history.length > historyLimit) {
+          history = history.slice(history.length - historyLimit);
+        }
+        saveHistory();
+      }
+
+      function formatDateTime(timestamp) {
+        return new Date(timestamp).toLocaleString("sr-RS", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+
+      function renderHistory() {
+        const rows = history
+          .slice()
+          .reverse()
+          .map((entry) => {
+            const temp = formatTemp(entry.tempC);
+            const dew = formatTemp(entry.dewC);
+            const hum = entry.hum.toFixed(1);
+            const time = formatDateTime(entry.timestamp);
+            return `
+              <tr>
+                <td>${temp}${ui.unit}</td>
+                <td>${hum}%</td>
+                <td>${dew}${ui.unit}</td>
+                <td>${time}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        statsBody.innerHTML = rows || `<tr><td colspan="4">Нема података.</td></tr>`;
+      }
+
+      function openModal() {
+        renderHistory();
+        statsModal.classList.add("open");
+        statsModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeModal() {
+        statsModal.classList.remove("open");
+        statsModal.setAttribute("aria-hidden", "true");
+      }
+
+      function clearHistory() {
+        history = [];
+        localStorage.removeItem(historyKey);
+        renderHistory();
+      }
+
       function updateOutputs() {
         tempOut.textContent = formatTemp(state.tempC);
         humOut.textContent = state.hum.toFixed(1);
@@ -389,6 +608,9 @@
         tempInput.max = tempRange.max;
 
         syncInputs();
+        if (statsModal.classList.contains("open")) {
+          renderHistory();
+        }
       }
 
       function syncInputs() {
@@ -718,6 +940,7 @@
         const tempValue = parseFloat(tempRange.value || 0);
         state.tempC = clamp(ui.unit === "C" ? tempValue : fToC(tempValue), boundsC.tMin, boundsC.tMax);
         state.hum = clamp(parseFloat(humRange.value || 0), boundsC.hMin, boundsC.hMax);
+        logHistory(state.tempC, state.hum);
         syncInputs();
       }
 
@@ -725,6 +948,7 @@
         const tempValue = parseFloat(tempInput.value || 0);
         state.tempC = clamp(ui.unit === "C" ? tempValue : fToC(tempValue), boundsC.tMin, boundsC.tMax);
         state.hum = clamp(parseFloat(humInput.value || 0), boundsC.hMin, boundsC.hMax);
+        logHistory(state.tempC, state.hum);
         syncInputs();
       }
 
@@ -757,6 +981,9 @@
       });
 
       window.addEventListener("pointerup", () => {
+        if (ui.dragging) {
+          logHistory(state.tempC, state.hum);
+        }
         ui.dragging = false;
       });
 
@@ -775,6 +1002,14 @@
         updateUnitUI();
       });
 
+      openStats.addEventListener("click", openModal);
+      closeStats.addEventListener("click", closeModal);
+      clearStats.addEventListener("click", clearHistory);
+      statsModal.addEventListener("click", (event) => {
+        if (event.target === statsModal) closeModal();
+      });
+
+      loadHistory();
 
       window.addEventListener("resize", resizeCanvas);
 
