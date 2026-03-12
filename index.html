@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="sr-Cyrl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dew Point XY Selector</title>
+    <title>XY избор тачке росе</title>
     <meta name="theme-color" content="#c4492d" />
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;600&display=swap");
@@ -54,6 +54,7 @@
         font-family: "Fraunces", serif;
         font-size: clamp(28px, 3.6vw, 42px);
         margin: 0 0 6px;
+        color: #c19a10;
       }
 
       header p {
@@ -205,24 +206,24 @@
     <main class="app">
       <section class="graph-wrap">
         <header>
-          <h1>Dew Point Map</h1>
-          <p>Select air temperature (x) and relative humidity (y) on the graph.</p>
+          <h1><span id="titleName">Мина</span> је најбоља</h1>
+          <p>Изаберите температуру ваздуха (x) и релативну влажност (y) на графику.</p>
         </header>
-        <canvas id="chart" width="780" height="440" aria-label="Temperature vs humidity" role="img"></canvas>
+        <canvas id="chart" width="780" height="440" aria-label="Температура наспрам влажности" role="img"></canvas>
         <div class="footer">
-          Drag to select. Hover to preview. X = air temperature, Y = relative humidity (%).
+          Превуците да изаберете. Померите курсор за преглед. X = температура ваздуха, Y = релативна влажност (%).
         </div>
       </section>
 
       <section class="controls">
         <div class="card">
-          <h2>Selection</h2>
+          <h2>Избор</h2>
           <div class="row">
             <div class="value">
               <strong id="tempOut">22.0</strong>
               <span id="tempUnit">C</span>
             </div>
-            <label for="tempRange">Air temperature</label>
+            <label for="tempRange">Температура ваздуха</label>
             <input id="tempRange" type="range" min="-20" max="50" value="22" step="0.5" />
             <input id="tempInput" type="number" min="-20" max="50" value="22" step="0.1" />
           </div>
@@ -231,34 +232,42 @@
               <strong id="humOut">55.0</strong>
               <span>%</span>
             </div>
-            <label for="humRange">Relative humidity</label>
+            <label for="humRange">Релативна влажност</label>
             <input id="humRange" type="range" min="10" max="100" value="55" step="1" />
             <input id="humInput" type="number" min="10" max="100" value="55" step="1" />
           </div>
         </div>
 
         <div class="card">
-          <h2>Dew Point</h2>
+          <h2>Ваше име</h2>
+          <div class="row">
+            <label for="nameInput">Име за наслов</label>
+            <input id="nameInput" type="text" placeholder="Унесите своје име" value="Мина" />
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Тачка росе</h2>
           <div class="value" style="color: var(--blue);">
             <strong id="dewOut">12.0</strong>
             <span id="dewUnit">C</span>
           </div>
-          <div class="badge" id="comfort">Comfort: OK</div>
+          <div class="badge" id="comfort">Комфор: удобно</div>
         </div>
 
         <div class="card">
-          <h2>Units</h2>
-          <div class="unit-toggle" role="group" aria-label="Temperature units">
+          <h2>Јединице</h2>
+          <div class="unit-toggle" role="group" aria-label="Јединице температуре">
             <button id="unitC" class="active" type="button">C</button>
             <button id="unitF" type="button">F</button>
           </div>
-          <p class="footer" id="unitHint" style="margin-top: 8px;">Inputs are in C.</p>
+          <p class="footer" id="unitHint" style="margin-top: 8px;">Уноси су у C.</p>
         </div>
 
         <div class="card">
-          <h2>Notes</h2>
+          <h2>Напомена</h2>
           <p class="footer">
-            Dew point uses the Magnus formula. Blue dot marks dew point along the x-axis.
+            Тачка росе користи Магнусову формулу. Плава тачка означава тачку росе дуж x-осе.
           </p>
         </div>
       </section>
@@ -282,6 +291,8 @@
       const unitC = document.getElementById("unitC");
       const unitF = document.getElementById("unitF");
       const unitHint = document.getElementById("unitHint");
+      const titleName = document.getElementById("titleName");
+      const nameInput = document.getElementById("nameInput");
 
       const boundsC = {
         tMin: -20,
@@ -355,11 +366,11 @@
       }
 
       function setComfort(dpC) {
-        let label = "Comfort: OK";
-        if (dpC >= 24) label = "Comfort: Oppressive";
-        else if (dpC >= 20) label = "Comfort: Muggy";
-        else if (dpC >= 16) label = "Comfort: Humid";
-        else if (dpC <= 2) label = "Comfort: Dry";
+        let label = "Комфор: удобно";
+        if (dpC >= 24) label = "Комфор: загушљиво";
+        else if (dpC >= 20) label = "Комфор: спарно";
+        else if (dpC >= 16) label = "Комфор: влажно";
+        else if (dpC <= 2) label = "Комфор: суво";
         comfort.textContent = label;
       }
 
@@ -377,7 +388,7 @@
         unitF.classList.toggle("active", !isC);
         tempUnit.textContent = ui.unit;
         dewUnit.textContent = ui.unit;
-        unitHint.textContent = `Inputs are in ${ui.unit}.`;
+        unitHint.textContent = `Уноси су у ${ui.unit}.`;
 
         const tempMin = isC ? boundsC.tMin : cToF(boundsC.tMin);
         const tempMax = isC ? boundsC.tMax : cToF(boundsC.tMax);
@@ -508,13 +519,13 @@
         ctx.textBaseline = "middle";
 
         ctx.fillStyle = "#f5d86b";
-        ctx.fillText("Dry", plot.x + plot.w * 0.18, plot.y + plot.h * 0.87);
+        ctx.fillText("Суво", plot.x + plot.w * 0.18, plot.y + plot.h * 0.87);
 
         ctx.fillStyle = "#6fe3a0";
-        ctx.fillText("Comfort", plot.x + plot.w * 0.42, plot.y + plot.h * 0.12);
+        ctx.fillText("Удобно", plot.x + plot.w * 0.42, plot.y + plot.h * 0.12);
 
         ctx.fillStyle = "#f28b8b";
-        ctx.fillText("Humid", plot.x + plot.w * 0.82, plot.y + plot.h * 0.15);
+        ctx.fillText("Влажно", plot.x + plot.w * 0.82, plot.y + plot.h * 0.15);
       }
 
       function drawAxes() {
@@ -528,7 +539,7 @@
 
         ctx.font = "13px 'IBM Plex Mono'";
         ctx.textAlign = "left";
-        const tempLabel = `Temperature (${ui.unit})`;
+        const tempLabel = `Температура (${ui.unit})`;
         ctx.fillText(tempLabel, originX + 6, originY + 32);
         const tempWidth = ctx.measureText(tempLabel).width;
         const arrowX = originX + 12 + tempWidth;
@@ -544,7 +555,7 @@
         ctx.closePath();
         ctx.fill();
 
-        const humLabel = "Humidity (%)";
+        const humLabel = "Влажност (%)";
         ctx.save();
         ctx.translate(originX - 48, originY - 6);
         ctx.rotate(-Math.PI / 2);
@@ -772,6 +783,11 @@
       unitF.addEventListener("click", () => {
         ui.unit = "F";
         updateUnitUI();
+      });
+
+      nameInput.addEventListener("input", () => {
+        const name = (nameInput.value || "Мина").trim();
+        titleName.textContent = name.length ? name : "Мина";
       });
 
       window.addEventListener("resize", resizeCanvas);
