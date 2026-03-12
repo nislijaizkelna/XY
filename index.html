@@ -389,6 +389,7 @@
                 <th>Температура</th>
                 <th>Влажност</th>
                 <th>Тачка росе</th>
+                <th>Комфор</th>
                 <th>Датум и време</th>
               </tr>
             </thead>
@@ -506,6 +507,14 @@
         comfort.textContent = label;
       }
 
+      function comfortLabel(dpC) {
+        if (dpC >= 24) return "Загушљиво";
+        if (dpC >= 20) return "Спарно";
+        if (dpC >= 16) return "Влажно";
+        if (dpC <= 2) return "Суво";
+        return "Удобно";
+      }
+
       function loadHistory() {
         try {
           const raw = localStorage.getItem(historyKey);
@@ -553,17 +562,19 @@
             const dew = formatTemp(entry.dewC);
             const hum = entry.hum.toFixed(1);
             const time = formatDateTime(entry.timestamp);
+            const comfortText = comfortLabel(entry.dewC);
             return `
               <tr>
                 <td>${temp}${ui.unit}</td>
                 <td>${hum}%</td>
                 <td>${dew}${ui.unit}</td>
+                <td>${comfortText}</td>
                 <td>${time}</td>
               </tr>
             `;
           })
           .join("");
-        statsBody.innerHTML = rows || `<tr><td colspan="4">Нема података.</td></tr>`;
+        statsBody.innerHTML = rows || `<tr><td colspan="5">Нема података.</td></tr>`;
       }
 
       function openModal() {
