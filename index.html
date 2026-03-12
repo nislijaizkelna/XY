@@ -206,7 +206,7 @@
     <main class="app">
       <section class="graph-wrap">
         <header>
-          <h1><span id="titleName">Мина</span> је најбоља</h1>
+          <h1>Dew Point Map</h1>
           <p>Изаберите температуру ваздуха (x) и релативну влажност (y) на графику.</p>
         </header>
         <canvas id="chart" width="780" height="440" aria-label="Температура наспрам влажности" role="img"></canvas>
@@ -235,14 +235,6 @@
             <label for="humRange">Релативна влажност</label>
             <input id="humRange" type="range" min="10" max="100" value="55" step="1" />
             <input id="humInput" type="number" min="10" max="100" value="55" step="1" />
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Ваше име</h2>
-          <div class="row">
-            <label for="nameInput">Име за наслов</label>
-            <input id="nameInput" type="text" placeholder="Унесите своје име" value="Мина" />
           </div>
         </div>
 
@@ -291,8 +283,6 @@
       const unitC = document.getElementById("unitC");
       const unitF = document.getElementById("unitF");
       const unitHint = document.getElementById("unitHint");
-      const titleName = document.getElementById("titleName");
-      const nameInput = document.getElementById("nameInput");
 
       const boundsC = {
         tMin: -20,
@@ -785,10 +775,6 @@
         updateUnitUI();
       });
 
-      nameInput.addEventListener("input", () => {
-        const name = (nameInput.value || "Мина").trim();
-        titleName.textContent = name.length ? name : "Мина";
-      });
 
       window.addEventListener("resize", resizeCanvas);
 
