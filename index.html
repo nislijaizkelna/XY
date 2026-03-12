@@ -252,6 +252,7 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
+        min-width: 720px;
       }
 
       th,
@@ -309,6 +310,7 @@
       <section class="graph-wrap">
         <header>
           <h1>Dew Point Map</h1>
+          <p class="footer" id="sessionInfo">Уређај: — • ОС: — • Прегледач: —</p>
           <p>Изаберите температуру ваздуха (x) и релативну влажност (y) на графику.</p>
         </header>
         <canvas id="chart" width="780" height="440" aria-label="Температура наспрам влажности" role="img"></canvas>
@@ -390,6 +392,7 @@
                 <th>Влажност</th>
                 <th>Тачка росе</th>
                 <th>Комфор</th>
+                <th>Сесија / ИП</th>
                 <th>Датум и време</th>
               </tr>
             </thead>
@@ -417,6 +420,7 @@
       const unitC = document.getElementById("unitC");
       const unitF = document.getElementById("unitF");
       const unitHint = document.getElementById("unitHint");
+      const sessionInfo = document.getElementById("sessionInfo");
       const openStats = document.getElementById("openStats");
       const clearStats = document.getElementById("clearStats");
       const closeStats = document.getElementById("closeStats");
@@ -464,8 +468,10 @@
       };
 
       const historyKey = "dewpoint_history_v1";
+      const sessionKey = "dewpoint_session_info_v1";
       const historyLimit = 300;
       let history = [];
+      let sessionMeta = null;
 
       function dewPointC(tempC, rh) {
         const a = 17.625;
@@ -515,6 +521,82 @@
         return "Удобно";
       }
 
+      function extractVersion(ua, token) {
+        const match = ua.match(new RegExp(`${token}\\/([\\d.]+)`));
+        return match ? match[1] : "";
+      }
+
+      function getBrowserInfo() {
+        const ua = navigator.userAgent;
+        if (ua.includes("Edg/")) return `Edge ${extractVersion(ua, "Edg")}`;
+        if (ua.includes("OPR/") || ua.includes("Opera")) return `Opera ${extractVersion(ua, "OPR")}`;
+        if (ua.includes("Chrome/")) return `Chrome ${extractVersion(ua, "Chrome")}`;
+        if (ua.includes("Safari/") && !ua.includes("Chrome/")) return `Safari ${extractVersion(ua, "Version")}`;
+        if (ua.includes("Firefox/")) return `Firefox ${extractVersion(ua, "Firefox")}`;
+        return "Непознато";
+      }
+
+      function getOsInfo() {
+        const ua = navigator.userAgent;
+        const platform = navigator.platform || "";
+        if (ua.includes("Windows")) return `Windows (${platform || "PC"})`;
+        if (ua.includes("Mac OS X")) return `macOS (${platform || "Mac"})`;
+        if (ua.includes("Android")) return `Android ${extractVersion(ua, "Android")}`;
+        if (ua.includes("iPhone") || ua.includes("iPad")) return `iOS ${extractVersion(ua, "OS").replace(/_/g, ".")}`;
+        if (ua.includes("Linux")) return `Linux (${platform || "Linux"})`;
+        return "Непознато";
+      }
+
+      function getDeviceInfo() {
+        const ua = navigator.userAgent;
+        if (ua.includes("Mobi") || ua.includes("Android") || ua.includes("iPhone")) return "Мобилни";
+        if (ua.includes("iPad")) return "Таблет";
+        return "Рачунар";
+      }
+
+      function setSessionInfo() {
+        const device = getDeviceInfo();
+        const os = getOsInfo();
+        const browser = getBrowserInfo();
+        const lang = navigator.language || "—";
+        const screenInfo = `${window.screen.width}x${window.screen.height}`;
+        const dpr = window.devicePixelRatio || 1;
+        sessionInfo.textContent = `Уређај: ${device} • ОС: ${os} • Прегледач: ${browser} • Језик: ${lang} • Екран: ${screenInfo} • DPR: ${dpr}`;
+      }
+
+      async function loadSessionMeta() {
+        try {
+          const cached = localStorage.getItem(sessionKey);
+          if (cached) {
+            sessionMeta = JSON.parse(cached);
+            return;
+          }
+          const response = await fetch("https://ipapi.co/json/");
+          if (!response.ok) throw new Error("ipapi");
+          const data = await response.json();
+          const device = getDeviceInfo();
+          const os = getOsInfo();
+          const browser = getBrowserInfo();
+          const location = [data.city, data.region, data.country_name].filter(Boolean).join(", ");
+          sessionMeta = {
+            ip: data.ip || "—",
+            location: location || "—",
+            device,
+            os,
+            browser,
+          };
+          localStorage.setItem(sessionKey, JSON.stringify(sessionMeta));
+        } catch (error) {
+          sessionMeta = {
+            ip: "—",
+            location: "—",
+            device: getDeviceInfo(),
+            os: getOsInfo(),
+            browser: getBrowserInfo(),
+          };
+        }
+      }
+
       function loadHistory() {
         try {
           const raw = localStorage.getItem(historyKey);
@@ -535,6 +617,7 @@
           hum,
           dewC,
           timestamp: Date.now(),
+          session: sessionMeta,
         });
         if (history.length > historyLimit) {
           history = history.slice(history.length - historyLimit);
@@ -563,18 +646,26 @@
             const hum = entry.hum.toFixed(1);
             const time = formatDateTime(entry.timestamp);
             const comfortText = comfortLabel(entry.dewC);
+            const session = entry.session || {};
+            const ip = session.ip || "—";
+            const location = session.location || "—";
+            const device = session.device || "—";
+            const os = session.os || "—";
+            const browser = session.browser || "—";
+            const details = `${device}; ${os}; ${browser}; ${location}; ${ip}`;
             return `
               <tr>
                 <td>${temp}${ui.unit}</td>
                 <td>${hum}%</td>
                 <td>${dew}${ui.unit}</td>
                 <td>${comfortText}</td>
+                <td>${details}</td>
                 <td>${time}</td>
               </tr>
             `;
           })
           .join("");
-        statsBody.innerHTML = rows || `<tr><td colspan="5">Нема података.</td></tr>`;
+        statsBody.innerHTML = rows || `<tr><td colspan="6">Нема података.</td></tr>`;
       }
 
       function openModal() {
@@ -1021,11 +1112,13 @@
       });
 
       loadHistory();
+      loadSessionMeta();
 
       window.addEventListener("resize", resizeCanvas);
 
       resizeCanvas();
       updateUnitUI();
+      setSessionInfo();
     </script>
   </body>
 </html>
